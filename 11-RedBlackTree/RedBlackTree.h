@@ -1,125 +1,93 @@
 #pragma once
-#include<vector>
-enum Colour
-{
-	RED,
-	BLACK
+
+enum Colour {
+	Red,
+	Black
 };
+
 template<class K,class V>
 struct RBNode
 {
-	RBNode<K,V>* _left;
-	RBNode<K,V>* _right;
-	RBNode<K,V>* _parent;
+	RBNode<K, V>* _left;
+	RBNode<K, V>* _right;
+	RBNode<K, V>* _parent;
 	pair<K, V> _kv;
 	Colour _col;
 
 	RBNode(const pair<K,V>& kv)
-		: _left(nullptr)
-		, _right(nullptr)
-		, _parent(nullptr)
+		:_left(nullptr)
+		,_right(nullptr)
+		,_parent(nullptr)
 		,_kv(kv)
-		,_col(RED)
+		,_col(Red)
 	{}
 
 };
-template<class K, class V>
+template<class K,class V>
 class RedBlackTree
 {
 	typedef RBNode<K, V> Node;
 public:
 
-	void RotateL(Node* parent)
+	void RotateLeft(Node* node)
 	{
-		Node* subR = parent->_right;
-		Node* subRL = subR->_left;
-
-		parent->_right = subRL;
-
-		if (subRL)
+		Node* rightChild = node->_right;
+		node->_right = rightChild->_left;
+		if (rightChild->_left)
 		{
-			subRL->_parent = parent;
+			rightChild->_left->_parent = node;
 		}
-		subR->_left = parent;
-		Node* ppNode = parent->_parent;
-
-		if (parent == _root)
+		rightChild->_parent = node->_parent;
+		if (node->_parent == nullptr)
 		{
-			_root = subR;
-			_root->_parent = nullptr;
+			_root = rightChild;
+		}
+		else if (node == node->_parent->_left)
+		{
+			node->_parent->_left = rightChild;
 		}
 		else
 		{
-			if (ppNode->_right == parent)
-			{
-				ppNode->_right = subR;
-			}
-			else
-			{
-				ppNode->_left = subR;
-			}
-			subR->_parent = ppNode;
+			node->_parent->_right = rightChild;
 		}
+		rightChild->_left = node;
+		node->_parent = rightChild;
 	}
-
-	void RotateR(Node* parent)
+	void RotateRight(Node* node)
 	{
-		Node* subL = parent->_left;
-		Node* subLR = subL->_right;
-
-		parent->_left = subLR;
-		if (subLR)
+		Node* leftChild = node->_left;
+		node->_left = leftChild->_right;
+		if (leftChild->_right)
 		{
-			subLR->_parent = parent;
+			leftChild->_right->_parent = node;
 		}
-		subL->_right = parent;
-
-		Node* ppNode = parent->_parent;
-		parent->_parent = subL;
-		if (parent == _root)
+		leftChild->_parent = node->_parent;
+		if (node->_parent == nullptr)
 		{
-			_root = subL;
-			_root->_parent = nullptr;
+			_root = leftChild;
+		}
+		else if (node == node->_parent->_left)
+		{
+			node->_parent->_left = leftChild;
 		}
 		else
 		{
-			if (ppNode->_left == parent)
-			{
-				ppNode->_left = subL;
-			}
-			else
-			{
-				ppNode->_right = subL;
-			}
-			subL->_parent = ppNode;
+			node->_parent->_right = leftChild;
 		}
-	}
-
-	void RotateLR(Node* parent)
-	{
-		Node* subL = parent->_left;
-		Node* subLR = subL->_right;
-		RotateL(parent->_left);
-		RotateR(parent);
-	}
-
-	void RotateRL(Node* parent)
-	{
-		Node* subR = parent->_right;
-		Node* subRL = subR->_left;
-		RotateR(subR);
-		RotateL(parent);
+		leftChild->_right = node;
+		node->_parent = leftChild;
 	}
 	bool Insert(const pair<K,V>& kv)
 	{
+		
 		if (_root == nullptr)
 		{
 			_root = new Node(kv);
-			_root->_col = BLACK;
-			return true;
+			_root->_col = Black;
 		}
 		Node* parent = nullptr;
 		Node* cur = _root;
+		//定位插入的位置
 		while (cur)
 		{
 			if (cur->_kv.first < kv.first)
@@ -133,13 +101,11 @@ public:
 				cur = cur->_left;
 			}
 			else
-			{
 				return false;
-			}
 		}
 
 		cur = new Node(kv);
-		cur->_col = RED;
+		cur->_col = Red;
 		if (parent->_kv.first < kv.first)
 		{
 			parent->_right = cur;
@@ -149,74 +115,65 @@ public:
 			parent->_left = cur;
 		}
 		cur->_parent = parent;
+		//----------------以上是二叉搜索树的插入，下面是红黑树的调整--------------
 
-		while(parent && parent->_col == RED)
-		{ 
-			Node* grandfather = parent->_parent;
-			if (parent== grandfather->_left)
+		while (cur->_parent && cur->_parent->_col == Red)
+		{
+			Node* parent = cur->_parent;
+			Node* grandParent = parent->_parent;
+			if (parent == grandParent->_left)//父亲是爷爷的左
 			{
-				Node* uncle = grandfather->_right;
-				//叔红，叔父爷变色，爷爷变插入结点
-				if (uncle && uncle->_col == RED)
+				Node* uncle = grandParent->_right;
+				if (uncle && uncle->_col == Red)//红叔
 				{
-					uncle->_col = BLACK;
-					parent->_col = BLACK;
-					grandfather->_col = RED;
-					cur = grandfather;
-					parent = cur->_parent;
+					parent->_col = Black;
+					uncle->_col = Black;
+					grandParent->_col = Red;
+					cur = grandParent;
 				}
-				else
-				{
-					if (cur == parent->_left)
-					{
-						RotateR(grandfather);
-						grandfather->_col = RED;
-						parent->_col = BLACK;
-					}
-					else
-					{
-						RotateLR(grandfather);
-						cur->_col = BLACK;
-						grandfather->_col = RED;
-					}
-					break;
-				}
-			}
-			else
-			{
-				Node* uncle = grandfather->_left;
-				if (uncle && uncle->_col == RED)
-				{
-					uncle->_col = BLACK;
-					parent->_col = BLACK;
-					grandfather->_col = RED;
-					cur = grandfather;
-					parent = cur->_parent;
-				}
-				else
+				else//黑叔
 				{
 					if (cur == parent->_right)
 					{
-						RotateL(grandfather);
-						grandfather->_col = RED;
-						parent->_col = BLACK;
+						cur = parent;
+						RotateLeft(cur);//左旋父结点
+						
 					}
-					else
+					RotateRight(grandParent);
+					parent->_col = Black;
+					grandParent ->_col = Red;
+
+				}
+			}
+			else//父亲是爷爷的右
+			{
+				Node* uncle = grandParent->_left;
+				if (uncle && uncle->_col == Red)//红叔
+				{
+					parent->_col = Black;
+					uncle->_col = Black;
+					grandParent->_col = Red;
+					cur = grandParent;
+				}
+				else//黑叔
+				{
+					if (cur == parent->_left)
 					{
-						RotateRL(grandfather);
-						cur->_col = BLACK;
-						grandfather->_col = RED;
+						cur = parent;
+						RotateRight(cur);//右旋父结点
+
 					}
-					break;
+					RotateLeft(grandParent);
+					parent->_col = Black;
+					grandParent->_col = Red;
+
 				}
 			}
 		}
-
-		_root->_col = BLACK;
+		_root->_col = Black;
 		return true;
 	}
 
-	
 	void InOrder()
 	{
 		_InOrder(_root);
@@ -224,19 +181,28 @@ public:
 	}
 	bool IsBalance()
 	{
-		if (_root->_col == RED)
+		if (_root->_col == Red)
 		{
 			return false;
 		}
 		return Check(_root);
 	}
 private:
+	void _InOrder(Node* root)
+	{
+		if (root == nullptr)
+			return;
+		_InOrder(root->_left);
+		cout << root->_kv.first<<":"<<root->_kv.second << endl;
+		_InOrder(root->_right);
+	}
+
 	bool Check(Node* root)
 	{
 		if (root->_parent == nullptr)
 			return true;
 
-		if (root->_col == RED && root->_parent->_col == RED)
+		if (root->_col == Red && root->_parent->_col == Red)
 		{
 			cout << root->_kv.first << "存在连续的红色结点" << endl;
 			return false;
@@ -244,44 +210,21 @@ private:
 		return Check(root->_left)
 			&& Check(root->_right);
 	}
-	void _InOrder(Node* root)
-	{
-		if (root == nullptr)
-		{
-			return;
-		}
-
-		_InOrder(root->_left);
-		cout << root->_kv.first << ":" << root->_kv.second << endl;
-		_InOrder(root->_right);
-	}
 private:
-	Node* _root=nullptr;
-	
+	Node* _root = nullptr;
+
 };
 
 void TestRBTree1()
 {
-	int a[] = { 4, 2, 6, 1, 3, 5, 15, 7, 16, 14,8, 3, 1, 10, 6, 4, 7, 14, 13 };
-	RedBlackTree<int, int> t1;
-	for (auto e : a)
+	int a1[] = {17,18,23,34,27,15,9,6,8,5,25};
+	RedBlackTree<int,int> t1;
+	for (auto e: a1)
 	{
-		if (e == 10)
-		{
-			int i = 0;
-		}
-		  
-		// 1、先看是插入谁导致出现的问题
-		// 2、打条件断点，画出插入前的树
-		// 3、单步跟踪，对比图一一分析细节原因
-		t1.Insert({ e,e});
-
+		t1.Insert({e,e});
 		cout << "Insert:" << e << "->" << t1.IsBalance() << endl;
 	}
-
 	t1.InOrder();
-	
 
-	cout << t1.IsBalance() << endl;
-
+	cout << "IsBalance：" << t1.IsBalance() << endl;
 }
